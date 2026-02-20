@@ -1,0 +1,54 @@
+╔══════════════════════════════════════════════════════════════╗
+║              MRDPSTOCK - M.R.D.P.S 27                       ║
+║         Logiciel de gestion de stock multi-client           ║
+╚══════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+ POUR CRÉER L'EXÉCUTABLE WINDOWS (.exe)
+═══════════════════════════════════════════════════════════════
+
+ÉTAPE 1 - Installer Node.js (si pas déjà fait)
+  → Aller sur : https://nodejs.org
+  → Télécharger la version "LTS" (ex: 20.x LTS)
+  → Installer en laissant toutes les options par défaut
+
+ÉTAPE 2 - Compiler l'application
+  → Double-cliquer sur : COMPILER_EXE.bat
+  → Attendre 3-5 minutes (téléchargement d'Electron la 1ère fois)
+  → L'EXE sera créé dans le dossier "dist\"
+
+ÉTAPE 3 - Utiliser
+  → dist\MRDPSTOCK Setup X.X.X.exe  → Installeur (recommandé)
+  → dist\MRDPSTOCK X.X.X.exe        → Portable (sans installation)
+
+═══════════════════════════════════════════════════════════════
+ TESTER SANS COMPILER (mode développement)
+═══════════════════════════════════════════════════════════════
+
+  1. Ouvrir un terminal dans ce dossier
+  2. Exécuter : npm install
+  3. Exécuter : npm start
+
+═══════════════════════════════════════════════════════════════
+ FONCTIONNALITÉS
+═══════════════════════════════════════════════════════════════
+
+  ✓ Gestion multi-clients (bases de données séparées)
+  ✓ Import Excel / CSV automatique avec mapping de colonnes
+  ✓ Export Excel avec sélection des colonnes
+  ✓ Historique complet de toutes les actions
+  ✓ Gestion des utilisateurs avec rôles
+  ✓ Données sauvegardées localement sur votre PC
+     → Emplacement : %APPDATA%\mrdpstock\mrdpstock-data.json
+
+═══════════════════════════════════════════════════════════════
+ SAUVEGARDE DES DONNÉES
+═══════════════════════════════════════════════════════════════
+
+  Vos données sont stockées dans :
+  C:\Users\[VotreNom]\AppData\Roaming\mrdpstock\mrdpstock-data.json
+
+  Pour sauvegarder : copiez ce fichier ailleurs
+  Pour restaurer : remplacez ce fichier par votre sauvegarde
+
+═══════════════════════════════════════════════════════════════

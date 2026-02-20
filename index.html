@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MRDPSTOCK</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f9fafb; overflow: hidden; }
+    #loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; flex-direction: column; gap: 16px;
+      background: #f9fafb; color: #6b7280; font-size: 14px;
+    }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid #e5e7eb;
+      border-top-color: #3d9b4e; border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #root { height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <span>Chargement de MRDPSTOCK...</span>
+  </div>
+  <div id="root" style="display:none"></div>
+
+  <!-- Dependencies loaded from node_modules after npm install -->
+  <script src="node_modules/react/umd/react.production.min.js"></script>
+  <script src="node_modules/react-dom/umd/react-dom.production.min.js"></script>
+  <script src="node_modules/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="node_modules/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="react" src="app.jsx"></script>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      // Babel will compile app.jsx, then we mount React
+      setTimeout(() => {
+        const loading = document.getElementById('loading');
+        const root = document.getElementById('root');
+        if (root.childNodes.length > 0) {
+          loading.style.display = 'none';
+          root.style.display = 'block';
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>
