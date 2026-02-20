@@ -2,7 +2,7 @@
   "name": "MRDPSTOCK",
   "version": "1.0.0",
   "description": "Application de stockage et logistique",
-  "author": "Frédéric Geffriaud <expedition@mrdps27.fr>",
+  "author": "Hugo deodato <expedition@mrdps27.fr>",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -12,6 +12,7 @@
     "appId": "com.mrdp.stock",
     "productName": "MRDPSTOCK",
     "files": [
+      "src/main.js",
       "src/**/*",
       "assets/**/*"
     ],
