@@ -7,7 +7,6 @@ const { v4: uuidv4 } = require('uuid');
 
 const DB_PATH = process.env.DB_PATH || './data/mrdpstock.db';
 
-// Créer le dossier data si nécessaire
 const dir = path.dirname(DB_PATH);
 if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
@@ -16,9 +15,9 @@ let db;
 function getDb() {
   if (!db) {
     db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');   // Meilleures performances
-    db.pragma('foreign_keys = ON');    // Intégrité référentielle
-    db.pragma('synchronous = NORMAL'); // Bon compromis vitesse/sécurité
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    db.pragma('synchronous = NORMAL');
   }
   return db;
 }
@@ -27,7 +26,6 @@ function initDb() {
   const db = getDb();
 
   db.exec(`
-    -- ─── Utilisateurs ───────────────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS users (
       id          TEXT PRIMARY KEY,
       name        TEXT NOT NULL,
@@ -39,8 +37,6 @@ function initDb() {
       created_at  TEXT NOT NULL DEFAULT (datetime('now')),
       is_active   INTEGER NOT NULL DEFAULT 1
     );
-
-    -- ─── Sessions (pour invalidation JWT) ───────────────────────────────────────
     CREATE TABLE IF NOT EXISTS sessions (
       id          TEXT PRIMARY KEY,
       user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -51,8 +47,6 @@ function initDb() {
       ip_address  TEXT,
       user_agent  TEXT
     );
-
-    -- ─── Bases clients (entrepôts/projets) ─────────────────────────────────────
     CREATE TABLE IF NOT EXISTS bases (
       id          TEXT PRIMARY KEY,
       name        TEXT NOT NULL,
@@ -60,8 +54,6 @@ function initDb() {
       created_by  TEXT REFERENCES users(id),
       is_active   INTEGER NOT NULL DEFAULT 1
     );
-
-    -- ─── Articles ────────────────────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS items (
       id            TEXT PRIMARY KEY,
       base_id       TEXT NOT NULL REFERENCES bases(id) ON DELETE CASCADE,
@@ -81,8 +73,6 @@ function initDb() {
       updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
       created_by    TEXT REFERENCES users(id)
     );
-
-    -- ─── Historique des actions ──────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS history (
       id          TEXT PRIMARY KEY,
       user_id     TEXT REFERENCES users(id),
@@ -94,65 +84,45 @@ function initDb() {
       ip_address  TEXT,
       created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
-
-    -- ─── Paramètres application ──────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS settings (
       key         TEXT PRIMARY KEY,
       value       TEXT NOT NULL,
       updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
-
-    -- ─── Colonnes personnalisées par base ────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS columns_config (
       base_id     TEXT NOT NULL REFERENCES bases(id) ON DELETE CASCADE,
       config      TEXT NOT NULL DEFAULT '[]',
       updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (base_id)
     );
-
-    -- ─── Index pour performances ─────────────────────────────────────────────────
     CREATE INDEX IF NOT EXISTS idx_items_base_id   ON items(base_id);
     CREATE INDEX IF NOT EXISTS idx_items_etat      ON items(etat);
-    CREATE INDEX IF NOT EXISTS idx_items_reference ON items(reference);
     CREATE INDEX IF NOT EXISTS idx_history_created ON history(created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_history_user    ON history(user_id);
-    CREATE INDEX IF NOT EXISTS idx_history_base    ON history(base_id);
-    CREATE INDEX IF NOT EXISTS idx_sessions_user   ON sessions(user_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_token  ON sessions(token_hash);
   `);
 
   // Paramètres par défaut
-  const defaultSettings = {
-    companyName: 'M.R.D.P.S 27',
-    lowStockAlert: 'true',
-    dateFormat: 'DD/MM/YYYY',
-    currency: '€',
-    language: 'fr',
-    theme: 'dark',
-  };
+  const insertSetting = db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`);
+  for (const [k, v] of Object.entries({
+    companyName: 'M.R.D.P.S 27', lowStockAlert: 'true',
+    dateFormat: 'DD/MM/YYYY', currency: '€', language: 'fr', theme: 'dark',
+  })) insertSetting.run(k, v);
 
-  const insertSetting = db.prepare(
-    `INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`
-  );
-  for (const [key, value] of Object.entries(defaultSettings)) {
-    insertSetting.run(key, value);
-  }
+  // Créer ou réinitialiser l'admin
+  const hash = bcrypt.hashSync('admin1234', 12);
+  const existingAdmin = db.prepare(`SELECT id FROM users WHERE name = 'Admin' LIMIT 1`).get();
 
-  // Créer l'admin par défaut s'il n'existe pas
-  const existingAdmin = db.prepare(`SELECT id FROM users WHERE role = 'admin' LIMIT 1`).get();
   if (!existingAdmin) {
-    const hash = bcrypt.hashSync('admin1234', 12);
-    db.prepare(`
-      INSERT INTO users (id, name, role, color, password_hash, must_change_password)
-      VALUES (?, 'Admin', 'admin', '#00875A', ?, 1)
-    `).run(uuidv4(), hash);
-    console.log('✅ Admin par défaut créé (login: Admin / mdp: admin1234)');
-    console.log('⚠️  Changez le mot de passe admin au premier login !');
+    db.prepare(`INSERT INTO users (id, name, role, color, password_hash, must_change_password) VALUES (?, 'Admin', 'admin', '#00875A', ?, 1)`)
+      .run(uuidv4(), hash);
+    console.log('✅ Admin créé (login: Admin / mdp: admin1234)');
+  } else if (process.env.RESET_ADMIN === 'true') {
+    db.prepare(`UPDATE users SET password_hash = ?, must_change_password = 1, is_active = 1 WHERE name = 'Admin'`)
+      .run(hash);
+    console.log('✅ Mot de passe Admin réinitialisé à admin1234');
   }
 
-  // Nettoyage périodique des sessions expirées
   db.prepare(`DELETE FROM sessions WHERE expires_at < datetime('now')`).run();
-
   console.log(`✅ Base de données initialisée : ${DB_PATH}`);
   return db;
 }
