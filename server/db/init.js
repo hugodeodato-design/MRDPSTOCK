@@ -101,25 +101,23 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_sessions_token  ON sessions(token_hash);
   `);
 
-  // Paramètres par défaut
   const insertSetting = db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`);
   for (const [k, v] of Object.entries({
     companyName: 'M.R.D.P.S 27', lowStockAlert: 'true',
     dateFormat: 'DD/MM/YYYY', currency: '€', language: 'fr', theme: 'dark',
   })) insertSetting.run(k, v);
 
-  // Créer ou réinitialiser l'admin
+  // TOUJOURS recréer/mettre à jour l'admin au démarrage
   const hash = bcrypt.hashSync('admin1234', 12);
-  const existingAdmin = db.prepare(`SELECT id FROM users WHERE name = 'Admin' LIMIT 1`).get();
-
-  if (!existingAdmin) {
+  const existing = db.prepare(`SELECT id FROM users WHERE name = 'Admin'`).get();
+  if (!existing) {
     db.prepare(`INSERT INTO users (id, name, role, color, password_hash, must_change_password) VALUES (?, 'Admin', 'admin', '#00875A', ?, 1)`)
       .run(uuidv4(), hash);
-    console.log('✅ Admin créé (login: Admin / mdp: admin1234)');
-  } else if (process.env.RESET_ADMIN === 'true') {
+    console.log('✅ Admin créé — login: Admin / mdp: admin1234');
+  } else {
     db.prepare(`UPDATE users SET password_hash = ?, must_change_password = 1, is_active = 1 WHERE name = 'Admin'`)
       .run(hash);
-    console.log('✅ Mot de passe Admin réinitialisé à admin1234');
+    console.log('✅ Admin mis à jour — login: Admin / mdp: admin1234');
   }
 
   db.prepare(`DELETE FROM sessions WHERE expires_at < datetime('now')`).run();
