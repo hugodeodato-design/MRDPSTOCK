@@ -107,17 +107,25 @@ function initDb() {
     dateFormat: 'DD/MM/YYYY', currency: '€', language: 'fr', theme: 'dark',
   })) insertSetting.run(k, v);
 
-  // TOUJOURS recréer/mettre à jour l'admin au démarrage
-  const hash = bcrypt.hashSync('admin1234', 12);
+  // Créer l'admin SEULEMENT s'il n'existe pas encore
+  // En prod, le mot de passe N'EST JAMAIS réinitialisé automatiquement
   const existing = db.prepare(`SELECT id FROM users WHERE name = 'Admin'`).get();
   if (!existing) {
+    const hash = bcrypt.hashSync('admin1234', 12);
     db.prepare(`INSERT INTO users (id, name, role, color, password_hash, must_change_password) VALUES (?, 'Admin', 'admin', '#00875A', ?, 1)`)
       .run(uuidv4(), hash);
     console.log('✅ Admin créé — login: Admin / mdp: admin1234');
-  } else {
+    console.log('⚠️  IMPORTANT : Changez ce mot de passe dès la première connexion !');
+  } else if (process.env.RESET_ADMIN === 'true') {
+    // Réinitialisation volontaire via variable d'environnement uniquement
+    const pwd = process.env.ADMIN_PASSWORD || 'admin1234';
+    const hash = bcrypt.hashSync(pwd, 12);
     db.prepare(`UPDATE users SET password_hash = ?, must_change_password = 1, is_active = 1 WHERE name = 'Admin'`)
       .run(hash);
-    console.log('✅ Admin mis à jour — login: Admin / mdp: admin1234');
+    console.log('✅ Admin réinitialisé via RESET_ADMIN=true — mdp: ' + pwd);
+    console.log('⚠️  Supprimez la variable RESET_ADMIN après ce redémarrage !');
+  } else {
+    console.log('✅ Admin existant conservé (mot de passe inchangé)');
   }
 
   db.prepare(`DELETE FROM sessions WHERE expires_at < datetime('now')`).run();
